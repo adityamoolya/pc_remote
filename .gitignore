@@ -1,0 +1,8 @@
+venv312/
+pc_client/
+.vs/
+v2-PC-client/__pycache__/
+v2-PC-client/uploads/
+v2-PC-client/output.txt
+
+
