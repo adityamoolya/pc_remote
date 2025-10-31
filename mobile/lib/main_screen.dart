@@ -38,12 +38,13 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Future<void> _showQRScannerDialog(ConnectionService connection) async {
+    // --- ADD THIS FLAG ---
+    bool isPopped = false;
+
     final String? scannedData = await showDialog<String>(
       context: context,
       builder: (context) => Dialog(
-        alignment: const Alignment(0.0, -0.5),
-        shape:
-        RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+        // ... (rest of your dialog setup) ...
         child: SizedBox(
           width: 300,
           height: 300,
@@ -51,8 +52,17 @@ class _MainScreenState extends State<MainScreen> {
             borderRadius: BorderRadius.circular(12.0),
             child: MobileScanner(
               onDetect: (capture) {
+                // --- ADD THIS CHECK ---
+                if (isPopped) return;
+
                 final List<Barcode> barcodes = capture.barcodes;
-                if (barcodes.isNotEmpty) {
+
+                // Add a null check for safety
+                if (barcodes.isNotEmpty && barcodes.first.rawValue != null) {
+
+                  // --- SET THE FLAG ---
+                  isPopped = true;
+
                   // Pop with the first valid QR code
                   Navigator.of(context).pop(barcodes.first.rawValue);
                 }
@@ -123,7 +133,8 @@ class _MainScreenState extends State<MainScreen> {
               // Show "Connected" message
               if (currentStatus == ConnectionStatus.connected) {
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  content: Text(connection.statusMessage),
+                  // --- CHANGE THIS LINE ---
+                  content: Text('Connected to ${connection.connectedIp}'),
                   backgroundColor: Colors.green,
                 ));
               }
@@ -169,11 +180,11 @@ class _MainScreenState extends State<MainScreen> {
                     softWrap: false,
                   ),
                 ),
-                if (connection.connectionStatus == ConnectionStatus.connected)
-                  Padding(
-                    padding: const EdgeInsets.only(left: 8.0),
-                    child: Text('(${connection.connectedIp})'),
-                  ),
+                // if (connection.connectionStatus == ConnectionStatus.connected)
+                //   Padding(
+                //     padding: const EdgeInsets.only(left: 8.0),
+                //     child: Text('(${connection.connectedIp})'),
+                //   ),
               ],
             ),
             actions: [

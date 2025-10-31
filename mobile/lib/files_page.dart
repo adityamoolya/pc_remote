@@ -5,10 +5,11 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:path/path.dart' as p;
-
+// import 'package:gal/gal.dart';
 // Import the files we need from our app
 import 'connection_service.dart';
 import 'file_system_item.dart';
+
 
 // NEW IMPORTS for downloading
 import 'package:permission_handler/permission_handler.dart';
@@ -24,6 +25,7 @@ class FilesPage extends StatefulWidget {
 
 class _FilesPageState extends State<FilesPage> {
   bool _isLoading = false;
+
   String? _error;
   String _currentPath = "Drives";
   List<FileSystemItem> _items = [];
@@ -32,6 +34,8 @@ class _FilesPageState extends State<FilesPage> {
   late ConnectionService _connectionService;
   StreamSubscription<Uint8List>? _messageSubscription;
   bool _initialFetchDone = false;
+
+  final p.Context _windowsPath = p.Context(style: p.Style.windows);
 
   String? _downloadingItemPath;
 
@@ -310,13 +314,13 @@ class _FilesPageState extends State<FilesPage> {
           color: Colors.black26,
           child: Row(
             children: [
-              if (_currentPath != "Drives")
-                IconButton(
-                  icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-                  onPressed: _navigateUp,
-                  color: Colors.white,
-                  tooltip: 'Go up a directory',
-                ),
+              // if (_currentPath != "Drives")
+              //   IconButton(
+              //     icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+              //     onPressed: _navigateUp,
+              //     color: Colors.white,
+              //     tooltip: 'Go up a directory',
+              //   ),
               Expanded(
                 child: Text(
                   _currentPath == "Drives"

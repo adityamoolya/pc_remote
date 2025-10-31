@@ -19,10 +19,10 @@ class MyApp extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (context) => ConnectionService(),
       child: MaterialApp(
-        title: 'Remote Control',
+        // title: 'Remote Control',
         theme: ThemeData.dark(),
         home: const MainScreen(),
-        debugShowCheckedModeBanner: false,
+        // debugShowCheckedModeBanner: false,
       ),
     );
   }
