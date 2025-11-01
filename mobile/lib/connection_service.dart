@@ -35,7 +35,7 @@ class ConnectionService extends ChangeNotifier {
     Socket.connect(
       uri.host,
       uri.port,
-      timeout: const Duration(seconds: 10),
+      timeout: const Duration(seconds: 5),
     )
         .then((Socket newSocket) {
       // This code runs ONLY if the connection is successful

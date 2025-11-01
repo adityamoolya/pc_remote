@@ -160,6 +160,7 @@ class _MainScreenState extends State<MainScreen> {
 
         return Scaffold(
           appBar: AppBar(
+            toolbarHeight: 35.0,
             backgroundColor: Colors.black26,
             title: Row(
               children: [

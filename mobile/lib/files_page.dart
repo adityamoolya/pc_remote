@@ -169,7 +169,7 @@ class _FilesPageState extends State<FilesPage> {
           name = parts.sublist(1).join(':');
           type = typeChar == 'D' ? ItemType.folder : ItemType.file;
           // Use path package for safe joining
-          path = p.join(_currentPath, name);
+          path = _windowsPath.join(_currentPath, name);
         }
         newItems.add(FileSystemItem(name: name, path: path, type: type));
       }
@@ -188,6 +188,8 @@ class _FilesPageState extends State<FilesPage> {
     }
   }
 
+
+  // COMMAND FUNCTION-O-0-0-0-0-0-
   void _sendCommand(String command) {
     if (_connectionService.connectionStatus != ConnectionStatus.connected ||
         _connectionService.socket == null) return;
