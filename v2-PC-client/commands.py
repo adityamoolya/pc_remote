@@ -65,7 +65,6 @@ def handle_download_file(conn, command_parts):
 def handle_unknown_command(conn, cmd_str):
     log_message(f"Received unknown command: {cmd_str}")
     send_text(conn, f"ERROR: Unknown command '{cmd_str}'")
-# --- (End of unchanged handlers) ---
 
 
 # --- MODIFIED: set_volume_live ---
@@ -81,16 +80,13 @@ def set_volume_live(conn, command_parts):
         volume_scalar = max(0.0, min(1.0, volume_level / 100.0))
         
         speakers = AudioUtilities.GetSpeakers()
-        # WHY: Access the .EndpointVolume property, based on your dir() output
         volume = speakers.EndpointVolume
         
-        # WHY: Call the method on the 'volume' object
         volume.SetMasterVolumeLevelScalar(volume_scalar, None)
     except Exception as e:
         log_message(f"Error setting volume: {e}")
 
 
-# --- MODIFIED: get_current_volume ---
 def get_current_volume(conn, command_parts):
     """
     Gets the current master volume and sends it back to the client.
@@ -98,10 +94,8 @@ def get_current_volume(conn, command_parts):
     """
     try:
         speakers = AudioUtilities.GetSpeakers()
-        # WHY: Access the .EndpointVolume property, based on your dir() output
         volume = speakers.EndpointVolume
 
-        # WHY: Call the method on the 'volume' object
         current_scalar = volume.GetMasterVolumeLevelScalar()
         current_percent = int(current_scalar * 100)
         
@@ -114,16 +108,13 @@ def get_current_volume(conn, command_parts):
         send_text(conn, f"ERROR: {e}")
 
 
-# --- (Decorated functions start here) ---
 
 @send_ok_on_success
 def toggle_mute():
     log_message("Executing MUTE")
     speakers = AudioUtilities.GetSpeakers()
-    # WHY: Access the .EndpointVolume property, based on your dir() output
     volume = speakers.EndpointVolume
 
-    # WHY: Call the methods on the 'volume' object
     is_muted = volume.GetMute()
     volume.SetMute(not is_muted, None)
 
@@ -180,7 +171,6 @@ def settings_os():
     # Open Windows Settings
     subprocess.Popen("start ms-settings:", shell=True)
    
-# --- (COMMAND_HANDLERS is unchanged) ---
 COMMAND_HANDLERS = {
     'DRIVES': handle_drives,
     'LIST_FILES': handle_list_files,
