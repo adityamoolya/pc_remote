@@ -90,6 +90,7 @@ def get_local_ip():
 def generate_secret_key(length=6):
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=length))
 
+# added for future use but works fine for now
 def pair():
     SECRET_KEY = generate_secret_key()
     local_ip = get_local_ip()
@@ -135,7 +136,23 @@ def pair():
 
 # creates a QR with tcp url and secret key ,then listens in the given port until client sends AUTH 
 if __name__ == "__main__":
-    pair()
+    SECRET_KEY = generate_secret_key()
+    local_ip = get_local_ip()
+    # tcp also works here
+    server_url_with_key = f"ws://{local_ip}:{PORT}|{SECRET_KEY}"
+
+    print("="*50) 
+    print("Server Started")
+    print(f"Secret key: {SECRET_KEY}")
+    print("Scan the QR code with the app to connect")
+    print("="*50)
+
+    qr = qrcode.QRCode()
+    qr.add_data(server_url_with_key)
+    qr.print_tty()
+    
+    print(f"\nConnect URL: {server_url_with_key}")
+
     print("\nListening for connections... (Press Ctrl+C to stop)")
 
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

@@ -9,7 +9,7 @@ import subprocess
 from comtypes import CLSCTX_ALL
 from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
 
-# --- (Decorator and File/Drive handlers are unchanged) ---
+# Decorator and File/Drive handlers
 def send_ok_on_success(func):
     """
     Decorator that sends 'OK' on successful execution
@@ -67,7 +67,7 @@ def handle_unknown_command(conn, cmd_str):
     send_text(conn, f"ERROR: Unknown command '{cmd_str}'")
 
 
-# --- MODIFIED: set_volume_live ---
+# ---  set_volume_live ---
 def set_volume_live(conn, command_parts):
     """
     Sets the master volume to a level from 0 to 100.
