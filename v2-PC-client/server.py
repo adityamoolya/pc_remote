@@ -9,7 +9,7 @@ import traceback
 import argparse
 
 HOST = '0.0.0.0'
-PORT = 8080
+PORT = 8082
 SECRET_KEY = ""
 
 
