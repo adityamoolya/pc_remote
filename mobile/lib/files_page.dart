@@ -39,6 +39,9 @@ class _FilesPageState extends State<FilesPage> {
 
   String? _downloadingItemPath;
 
+  // --- FIX 1: ADD DATA BUFFER ---
+  Uint8List _dataBuffer = Uint8List(0);
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -60,6 +63,7 @@ class _FilesPageState extends State<FilesPage> {
           _initialFetchDone = false;
           _items = [];
           _currentPath = "Drives";
+          _dataBuffer = Uint8List(0); // <-- FIX: Clear buffer on disconnect
         });
       }
     }
@@ -71,60 +75,81 @@ class _FilesPageState extends State<FilesPage> {
     super.dispose();
   }
 
+  // --- FIX 2: REPLACE THIS ENTIRE FUNCTION ---
   void _setupListener() {
-    // This is the listener for the FilesPage
     _messageSubscription?.cancel();
     _messageSubscription = _connectionService.socketStream?.listen(
           (data) {
         // --- ALL THE DEBUG PRINTS ARE HERE ---
-        print("FILES_PAGE: LISTENER: Received data! Length: ${data.length}");
+        print("FILES_PAGE: LISTENER: Received data! Chunk Length: ${data.length}");
 
-        if (data.length < 4) {
-          print("FILES_PAGE: LISTENER: Data too short, ignoring. (Probably AUTH_OK)");
-          return;
-        }
+        // Add new data to our buffer
+        _dataBuffer = Uint8List.fromList(_dataBuffer + data);
 
-        final length = ByteData.view(data.buffer).getUint32(0);
-        print("FILES_PAGE: LISTENER: Expecting payload length: $length");
+        print("FILES_PAGE: LISTENER: Buffer size is now: ${_dataBuffer.length}");
 
-        if (data.length < length + 4) {
-          print("FILES_PAGE: LISTENER: Partial data received, waiting for more.");
-          return;
-        }
+        // Process all complete messages in the buffer
+        while (true) {
+          // 1. Check if we have enough data for the length header
+          if (_dataBuffer.length < 4) {
+            print("FILES_PAGE: LISTENER: Buffer too small for header. Waiting for more data.");
+            break; // Exit loop, wait for next data chunk
+          }
 
-        // Get the actual data
-        final payload = data.sublist(4, length + 4);
+          // 2. Read the expected payload length
+          final length = ByteData.view(_dataBuffer.buffer).getUint32(0);
+          print("FILES_PAGE: LISTENER: Expecting payload length: $length");
 
-        if (_downloadingItemPath != null) {
-          print("FILES_PAGE: LISTENER: Received data, saving as file...");
-          final filename = p.basename(_downloadingItemPath!);
-          _saveFile(payload, filename);
-          _downloadingItemPath = null;
-          setState(() { _isLoading = false; });
-        } else {
-          // Expecting text (file list or error)
-          try {
-            final message = utf8.decode(payload);
-            print("FILES_PAGE: LISTENER: Decoded message: $message");
+          // 3. Check if the buffer contains the full message (header + payload)
+          final totalMessageLength = length + 4;
+          if (_dataBuffer.length < totalMessageLength) {
+            print("FILES_PAGE: LISTENER: Partial data received. Buffer: ${_dataBuffer.length}, Need: $totalMessageLength. Waiting.");
+            break; // Exit loop, wait for next data chunk
+          }
 
-            if (message.startsWith("ERROR:")) {
-              print("FILES_PAGE: LISTENER: Received an ERROR from server.");
+          // 4. We have a full message! Extract the payload.
+          print("FILES_PAGE: LISTENER: Full message received. Processing...");
+          final payload = _dataBuffer.sublist(4, totalMessageLength);
+
+          // 5. Remove this message from the buffer
+          _dataBuffer = _dataBuffer.sublist(totalMessageLength);
+          print("FILES_PAGE: LISTENER: Message processed. Remaining buffer: ${_dataBuffer.length}");
+
+
+          // 6. --- YOUR EXISTING LOGIC ---
+          if (_downloadingItemPath != null) {
+            print("FILES_PAGE: LISTENER: Received data, saving as file...");
+            final filename = p.basename(_downloadingItemPath!);
+            _saveFile(payload, filename);
+            _downloadingItemPath = null;
+            setState(() { _isLoading = false; });
+          } else {
+            // Expecting text (file list or error)
+            try {
+              final message = utf8.decode(payload);
+              print("FILES_PAGE: LISTENER: Decoded message: $message");
+
+              if (message.startsWith("ERROR:")) {
+                print("FILES_PAGE: LISTENER: Received an ERROR from server.");
+                setState(() {
+                  _error = message;
+                  _isLoading = false;
+                });
+              } else {
+                print("FILES_PAGE: LISTENER: Parsing response...");
+                _parseResponse(message); // This will set _isLoading = false
+              }
+            } catch (e) {
+              print("FILES_PAGE: LISTENER: FAILED TO DECODE UTF-8: $e");
               setState(() {
-                _error = message;
+                _error = "Received unexpected data from server.";
                 _isLoading = false;
               });
-            } else {
-              print("FILES_PAGE: LISTENER: Parsing response...");
-              _parseResponse(message);
             }
-          } catch (e) {
-            print("FILES_PAGE: LISTENER: FAILED TO DECODE UTF-8: $e");
-            setState(() {
-              _error = "Received unexpected data from server.";
-              _isLoading = false;
-            });
           }
-        }
+          // --- END OF YOUR EXISTING LOGIC ---
+
+        } // End of while loop, check buffer for more messages
       },
       onError: (error) {
         print("FILES_PAGE: LISTENER: Socket Error: $error");
@@ -132,6 +157,7 @@ class _FilesPageState extends State<FilesPage> {
           _error = "Socket error: $error";
           _isLoading = false;
           _downloadingItemPath = null;
+          _dataBuffer = Uint8List(0); // <-- FIX: Clear buffer
         });
       },
       onDone: () {
@@ -140,10 +166,13 @@ class _FilesPageState extends State<FilesPage> {
           _error = "Connection closed.";
           _initialFetchDone = false;
           _downloadingItemPath = null;
+          _dataBuffer = Uint8List(0); // <-- FIX: Clear buffer
         });
       },
     );
   }
+  // --- END OF REPLACED FUNCTION ---
+
 
   void _parseResponse(String response) {
     print("FILES_PAGE: _parseResponse: Parsing...");
@@ -351,7 +380,7 @@ class _FilesPageState extends State<FilesPage> {
     if (_error != null) {
       return Center(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment:  MainAxisAlignment.center,
           children: [
             Text('Error: $_error', style: const TextStyle(color: Colors.redAccent)),
             const SizedBox(height: 20),

@@ -139,7 +139,7 @@ if __name__ == "__main__":
     SECRET_KEY = generate_secret_key()
     local_ip = get_local_ip()
     # tcp also works here
-    server_url_with_key = f"ws://{local_ip}:{PORT}|{SECRET_KEY}"
+    server_url_with_key = f"tcp://{local_ip}:{PORT}|{SECRET_KEY}"
 
     print("="*50) 
     print("Server Started")
