@@ -10,8 +10,6 @@ import 'package:path/path.dart' as p;
 import 'connection_service.dart';
 import 'file_system_item.dart';
 
-
-// NEW IMPORTS for downloading
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
 

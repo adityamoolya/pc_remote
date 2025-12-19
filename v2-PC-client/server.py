@@ -77,9 +77,10 @@ def client_handler(conn, addr):
 
 
 def get_local_ip():
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # temp socket used to get ip , not related to the main socket
     try:
-        s.connect(('8.8.8.8', 80))
+        s.connect(('8.8.8.8', 80)) ## pretends to connect to 8.8.8.8 so the os picks the correct local IP (no data is sent)
+
         ip = s.getsockname()[0]
     except Exception:
         ip = '127.0.0.1'
@@ -173,7 +174,7 @@ if __name__ == "__main__":
                 continue 
                 
     except KeyboardInterrupt: #used to shut down the server instead of killin it in taskmanger
-        log_message("\n🚫Server is shutting down.")
+        log_message("\nServer is shutting down.")
     finally:
         server_socket.close()
         log_message("Server socket closed. Exiting.")
