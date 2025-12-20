@@ -48,6 +48,6 @@ def root():
 
 
 if __name__=="__main__":
-    from utils.auth_utils import SECRET_KEY
-    print(f"PAIRING CODE: {SECRET_KEY}")
+    # from utils.auth_utils import SECRET_KEY
+    # print(f"PAIRING CODE: {SECRET_KEY}")
     uvicorn.run(app, host="0.0.0.0", port=8080)
