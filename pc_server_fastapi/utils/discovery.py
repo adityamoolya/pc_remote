@@ -36,10 +36,13 @@ def start_mdns_broadcast(port: int):
         server=f"{hostname}.local.",
     )
 
-    zc = Zeroconf(ip_version=IPVersion.V4Only)
-    zc.register_service(info)
-    
-    # print(f"mDNS Broadcast started: {hostname}.local ({local_ip})")
+    try:
+        zc = Zeroconf(ip_version=IPVersion.V4Only)
+        zc.register_service(info, ttl=60)
+        print(f"mDNS Broadcast started: {hostname}.local ({local_ip})")
+    except Exception as e:
+        print(f"mDNS Broadcast failed (non-critical): {e}")
+        zc = None
     return zc, info
 
 
