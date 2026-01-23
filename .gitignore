@@ -5,4 +5,5 @@ v2-PC-client/__pycache__/
 v2-PC-client/uploads/
 v2-PC-client/output.txt
 pc_server_fastapi/.env
+**/.env
 

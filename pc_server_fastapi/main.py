@@ -15,9 +15,11 @@ async def lifespan(app: FastAPI):
     stop_mdns_broadcast(zc, info)
 
 
-app= FastAPI(   title="PCremote Server",
-             version="2.0.0",
- )
+app= FastAPI(
+    title="PCremote Server",
+    version="2.0.0",
+    lifespan=lifespan  #this enables mDNS broadcast on startup and stops it on shutdown
+)
 
 app.include_router(
     system.router, 
