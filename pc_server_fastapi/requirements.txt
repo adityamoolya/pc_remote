@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+zeroconf
+pycaw
+comtypes
+python-dotenv
