@@ -22,7 +22,9 @@ def get_or_create_key():
         # No key found, generate the first one
         key = generate_random_key()
         set_key(ENV_PATH, "PC_REMOTE_SECRET_KEY", key)
-        print(f" New Secret Key generated and saved: {key}")
+        print(f"[AUTH] New Secret Key generated: {key}")
+    else:
+        print(f"[AUTH] Using existing Secret Key: {key}")
     
     return key
 
