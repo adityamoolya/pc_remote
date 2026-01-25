@@ -14,7 +14,7 @@ class _DashboardTabState extends State<DashboardTab> {
   String? _expandedCategoryKey;
   final double _gridSpacing = 12.0;
 
-  // Categories map matches mobile_tcp
+  // Categories map - no VOLUME since there's a dedicated Media tab
   final Map<String, Map<String, IconData>> _categories = {
     'POWER': {
       'LOCK': Icons.lock_outline_rounded,
@@ -22,13 +22,11 @@ class _DashboardTabState extends State<DashboardTab> {
       'SHUTDOWN': Icons.desktop_windows_rounded,
       'RESTART': Icons.restart_alt_rounded,
     },
-    'VOLUME': {
-      'MUTE': Icons.volume_off_rounded,
-    },
     'MEDIA': {
       'PLAY_PAUSE': Icons.play_arrow_rounded,
       'NEXT': Icons.skip_next_rounded,
       'PREVIOUS': Icons.skip_previous_rounded,
+      'MUTE': Icons.volume_off_rounded,
     },
     'SYSTEM': {
       'TASK_MANAGER': Icons.table_chart_rounded,

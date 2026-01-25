@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/server_provider.dart';
 import '../providers/pc_provider.dart';
+import '../theme/app_theme.dart';
 import 'home_shell.dart';
 
 class ConnectionScreen extends StatefulWidget {
@@ -17,6 +18,7 @@ class _ConnectionScreenState extends State<ConnectionScreen> with SingleTickerPr
   final TextEditingController _portController = TextEditingController(text: '8080');
   final TextEditingController _keyController = TextEditingController();
   bool _showManual = false;
+  bool _attemptingAutoLogin = false;
 
   @override
   void initState() {
@@ -25,6 +27,46 @@ class _ConnectionScreenState extends State<ConnectionScreen> with SingleTickerPr
       vsync: this,
       duration: const Duration(seconds: 2),
     );
+    
+    // Attempt auto-login with stored credentials
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _attemptAutoLogin();
+    });
+  }
+
+  Future<void> _attemptAutoLogin() async {
+    final server = context.read<ServerProvider>();
+    
+    if (server.autoLoginAttempted) return;
+    server.markAutoLoginAttempted();
+    
+    await server.loadStoredCredentials();
+    
+    if (server.hasStoredCredentials && mounted) {
+      setState(() => _attemptingAutoLogin = true);
+      
+      final pc = context.read<PCProvider>();
+      final success = await pc.verifyConnection();
+      
+      if (success && mounted) {
+        server.markConnected();
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const HomeShell()),
+        );
+      } else {
+        // Clear invalid credentials
+        await server.clearStoredCredentials();
+        if (mounted) {
+          setState(() => _attemptingAutoLogin = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Saved credentials expired. Please reconnect.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
+    }
   }
 
   @override
@@ -79,16 +121,33 @@ class _ConnectionScreenState extends State<ConnectionScreen> with SingleTickerPr
       _scanController.reset();
     }
 
+    // Show loading while attempting auto-login
+    if (_attemptingAutoLogin) {
+      return Scaffold(
+        backgroundColor: AppTheme.background,
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(color: AppTheme.primary),
+              const SizedBox(height: 24),
+              Text(
+                'Reconnecting...',
+                style: TextStyle(color: AppTheme.textSecondary),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Theme.of(context).colorScheme.background,
-              const Color(0xFF0F1016),
-            ],
+            colors: [AppTheme.background, Color(0xFF060608)],
           ),
         ),
         child: SafeArea(
@@ -103,26 +162,26 @@ class _ConnectionScreenState extends State<ConnectionScreen> with SingleTickerPr
                     width: 120,
                     height: 120,
                     decoration: BoxDecoration(
-                      color: Theme.of(context).primaryColor.withOpacity(0.1),
+                      color: AppTheme.primary.withAlpha(25),
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: Theme.of(context).primaryColor.withOpacity(0.5),
+                        color: AppTheme.primary.withAlpha(128),
                         width: 2,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Theme.of(context).primaryColor.withOpacity(0.2),
-                          blurRadius: 20,
+                          color: AppTheme.primary.withAlpha(51),
+                          blurRadius: 30,
                           spreadRadius: 5,
                         ),
                       ],
                     ),
                     child: RotationTransition(
                       turns: Tween(begin: 0.0, end: 1.0).animate(_scanController),
-                      child: Icon(
+                      child: const Icon(
                         Icons.radar,
                         size: 64,
-                        color: Theme.of(context).primaryColor,
+                        color: AppTheme.primary,
                       ),
                     ),
                   ),
@@ -140,7 +199,7 @@ class _ConnectionScreenState extends State<ConnectionScreen> with SingleTickerPr
                   Text(
                     'Control your PC from anywhere',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.white70,
+                          color: AppTheme.textSecondary,
                         ),
                   ),
                   const SizedBox(height: 48),
@@ -151,19 +210,19 @@ class _ConnectionScreenState extends State<ConnectionScreen> with SingleTickerPr
                       padding: const EdgeInsets.all(16),
                       margin: const EdgeInsets.only(bottom: 24),
                       decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.1),
+                        color: AppTheme.success.withAlpha(25),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.green.withOpacity(0.3)),
+                        border: Border.all(color: AppTheme.success.withAlpha(76)),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.check_circle, color: Colors.green),
+                          const Icon(Icons.check_circle, color: AppTheme.success),
                           const SizedBox(width: 12),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                server.pcName ?? 'Unknown PC',
+                                server.pcName ?? 'PC Found',
                                 style: const TextStyle(fontWeight: FontWeight.bold),
                               ),
                               Text('${server.serverIp}:${server.serverPort}'),
@@ -174,17 +233,19 @@ class _ConnectionScreenState extends State<ConnectionScreen> with SingleTickerPr
                     ),
 
                   // --- Action Buttons ---
-                  if (!_showManual) ...[
+                  if (!_showManual && server.status != ServerStatus.found) ...[
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
                         onPressed: isScanning ? null : () => server.discover(),
                         icon: isScanning 
-                            ? Container(
+                            ? const SizedBox(
                                 width: 24, 
                                 height: 24, 
-                                padding: const EdgeInsets.all(2),
-                                child: const CircularProgressIndicator(strokeWidth: 2, color: Colors.white)
+                                child: Padding(
+                                  padding: EdgeInsets.all(2),
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                ),
                               )
                             : const Icon(Icons.search),
                         label: Text(isScanning ? 'Scanning...' : 'Scan Network'),
@@ -203,7 +264,7 @@ class _ConnectionScreenState extends State<ConnectionScreen> with SingleTickerPr
                       duration: const Duration(milliseconds: 300),
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).cardTheme.color,
+                        color: AppTheme.surface,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(color: Colors.white10),
                       ),
@@ -243,16 +304,12 @@ class _ConnectionScreenState extends State<ConnectionScreen> with SingleTickerPr
                               labelText: 'Pairing Code',
                               prefixIcon: Icon(Icons.vpn_key),
                             ),
-                            obscureText: true,
                           ),
                           const SizedBox(height: 24),
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
                               onPressed: context.watch<PCProvider>().isLoading ? null : _handleConnect,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Theme.of(context).colorScheme.secondary,
-                              ),
                               child: context.watch<PCProvider>().isLoading
                                   ? const SizedBox(
                                       height: 20,
@@ -267,7 +324,7 @@ class _ConnectionScreenState extends State<ConnectionScreen> with SingleTickerPr
                               padding: const EdgeInsets.only(top: 12),
                               child: TextButton(
                                 onPressed: () => setState(() => _showManual = false),
-                                child: const Text('Cancel Manual Entry'),
+                                child: const Text('Cancel'),
                               ),
                             ),
                         ],

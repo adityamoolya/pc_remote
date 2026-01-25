@@ -2,27 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  // --- Colors ---
-  static const Color primary = Color(0xFF6C63FF); // Electric Violet
-  static const Color secondary = Color(0xFF2A2D3E); // Dark Blue-Grey
-  static const Color background = Color(0xFF1E1E2E); // Deep Space Blue
-  static const Color surface = Color(0xFF232533); // Slightly lighter than bg
-  static const Color accent = Color(0xFF00E5FF); // Cyan Neon
-  static const Color error = Color(0xFFFF5252);
-  static const Color success = Color(0xFF00E676);
+  // --- Colors --- (New sleek dark theme)
+  static const Color primary = Color(0xFF3D9BFF); // Electric Blue
+  static const Color secondary = Color(0xFF1A1B2E); // Deep Navy
+  static const Color background = Color(0xFF0D0E14); // Near Black
+  static const Color surface = Color(0xFF14151F); // Dark Surface
+  static const Color accent = Color(0xFF10D9A8); // Teal Accent
+  static const Color error = Color(0xFFFF6B6B);
+  static const Color success = Color(0xFF10D9A8);
   
   static const Color textPrimary = Color(0xFFFFFFFF);
-  static const Color textSecondary = Color(0xB3FFFFFF); // 70% opacity
+  static const Color textSecondary = Color(0xFF8E8E9A);
 
   // --- Gradients ---
   static const LinearGradient primaryGradient = LinearGradient(
-    colors: [Color(0xFF6C63FF), Color(0xFF4834D4)],
+    colors: [Color(0xFF3D9BFF), Color(0xFF1E5FD9)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
   
   static const LinearGradient glassGradient = LinearGradient(
-    colors: [Color(0x26FFFFFF), Color(0x0DFFFFFF)], // 15% to 5% opacity
+    colors: [Color(0x1AFFFFFF), Color(0x08FFFFFF)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
@@ -36,7 +36,7 @@ class AppTheme {
       primaryColor: primary,
       
       // Text Theme
-      textTheme: GoogleFonts.outfitTextTheme().apply(
+      textTheme: GoogleFonts.interTextTheme().apply(
         bodyColor: textPrimary,
         displayColor: textPrimary,
       ),
@@ -47,7 +47,7 @@ class AppTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: Color(0x1AFFFFFF), width: 1), // Subtle border
+          side: const BorderSide(color: Color(0x1AFFFFFF), width: 1),
         ),
       ),
 
@@ -74,8 +74,7 @@ class AppTheme {
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          elevation: 4,
-          shadowColor: primary.withOpacity(0.4),
+          elevation: 0,
         ),
       ),
       
@@ -85,6 +84,15 @@ class AppTheme {
         centerTitle: true,
         scrolledUnderElevation: 0,
         titleTextStyle: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+      ),
+
+      // Bottom Nav
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+        backgroundColor: surface,
+        selectedItemColor: primary,
+        unselectedItemColor: textSecondary,
+        type: BottomNavigationBarType.fixed,
+        elevation: 0,
       ),
 
       colorScheme: const ColorScheme.dark(

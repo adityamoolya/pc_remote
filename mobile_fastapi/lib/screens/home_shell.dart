@@ -5,7 +5,7 @@ import '../providers/server_provider.dart';
 import 'tabs/dashboard_tab.dart';
 import 'tabs/media_tab.dart';
 import 'tabs/files_tab.dart';
-import 'tabs/system_tab.dart';
+import 'tabs/profile_tab.dart';
 
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
@@ -21,21 +21,12 @@ class _HomeShellState extends State<HomeShell> {
   final List<Widget> _pages = [
     const DashboardTab(),
     const FilesTab(),
-    const MediaTab(), // Keeping MediaTab available but maybe not in main nav if strictly following tcp? TCP had Settings as 3rd. Let's stick to user request "similar to mobile_tcp" which had Home, Explorer, Settings.
-                      // But mobile_fastapi has Media and System. Let's map: Home->Dashboard, Explorer->Files, Settings->System(maybe).
-                      // The user said "do not edit files in mobile_tcp", "implement it to mobile_fastapi".
-                      // mobile_tcp had: Home, Explorer, Settings.
-                      // mobile_fastapi has: Dashboard, Media, Files, System.
-                      // Let's use: Dashboard(Home), Files(Explorer), System(Settings). Media can be inside Dashboard or separate.
-                      // Let's keep all 4 for now in the stack but show 3 in nav like mobile_tcp?
-                      // mobile_tcp: Home, Explorer, Settings.
-                      // Let's stick to the 3 from mobile_tcp visual style but keep functionality.
-                      // Actually, mobile_tcp bottom nav items were hardcoded.
-    const SystemTab(), 
+    const MediaTab(),
+    const ProfileTab(),
   ];
 
   void _onItemTapped(int index) {
-     if (index == 1 &&
+    if (index == 1 &&
         context.read<ServerProvider>().status != ServerStatus.connected) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('Please connect to the server first.'),
@@ -76,33 +67,24 @@ class _HomeShellState extends State<HomeShell> {
     );
 
     if (scannedData != null) {
-       try {
-        // Expected format: IP:PORT|PC_NAME (or similar, adapt to what your server generates)
-        // FastAPI server qr: f"{ip_address}:{port}" or with secret key?
-        // Let's assume standard IP:PORT for now or try to parse
-        // mobile_tcp was "IP|PORT".
-        // Let's try to handle both or just raw string if it's ip:port
-        
+      try {
         String ip = scannedData;
         int port = 8000;
-        
+
         if (scannedData.contains('|')) {
-             final parts = scannedData.split('|');
-             ip = parts[0];
-             port = int.tryParse(parts[1]) ?? 8000;
+          final parts = scannedData.split('|');
+          ip = parts[0];
+          port = int.tryParse(parts[1]) ?? 8000;
         } else if (scannedData.contains(':')) {
-            final parts = scannedData.split(':');
-            ip = parts[0];
-            port = int.tryParse(parts[1]) ?? 8000;
+          final parts = scannedData.split(':');
+          ip = parts[0];
+          port = int.tryParse(parts[1]) ?? 8000;
         }
-        
+
         server.setManualIp(ip, port);
-        // Trigger generic discovery or just set it?
-        // ServerProvider has setManualIp but doesn't auto connect?
-        // Let's start connection check if possible, or just set it.
       } catch (e) {
         if (mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text('Invalid QR: $e'),
             backgroundColor: Colors.redAccent,
           ));
@@ -133,21 +115,22 @@ class _HomeShellState extends State<HomeShell> {
   @override
   Widget build(BuildContext context) {
     final server = context.watch<ServerProvider>();
-    
+
     // SnackBar Logic
     if (server.status != _previousStatus) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           if (server.status == ServerStatus.connected) {
-             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                content: Text('Connected to ${server.serverIp}'),
-                backgroundColor: Colors.green,
-             ));
-          } else if (_previousStatus == ServerStatus.searching && server.status == ServerStatus.error) {
-             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                content: Text('Connection failed'),
-                backgroundColor: Colors.redAccent,
-             ));
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text('Connected to ${server.serverIp}'),
+              backgroundColor: Colors.green,
+            ));
+          } else if (_previousStatus == ServerStatus.searching &&
+              server.status == ServerStatus.error) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text('Connection failed'),
+              backgroundColor: Colors.redAccent,
+            ));
           }
         }
       });
@@ -165,8 +148,8 @@ class _HomeShellState extends State<HomeShell> {
               color: server.status == ServerStatus.connected
                   ? Colors.green
                   : server.status == ServerStatus.searching
-                  ? Colors.amber
-                  : Colors.red,
+                      ? Colors.amber
+                      : Colors.red,
               size: 14,
             ),
             const SizedBox(width: 8),
@@ -187,7 +170,7 @@ class _HomeShellState extends State<HomeShell> {
                 : () {
                     if (server.status == ServerStatus.connected) {
                       server.disconnect();
-                      if (_selectedIndex == 1) _onItemTapped(0); 
+                      if (_selectedIndex == 1) _onItemTapped(0);
                     } else {
                       _showQRScannerDialog();
                     }
@@ -203,15 +186,12 @@ class _HomeShellState extends State<HomeShell> {
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.folder), label: 'Explorer'),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
+          BottomNavigationBarItem(icon: Icon(Icons.folder), label: 'Files'),
+          BottomNavigationBarItem(icon: Icon(Icons.music_note), label: 'Media'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
-        selectedItemColor: Colors.white,
-        unselectedItemColor: Colors.grey,
-        backgroundColor: Colors.grey[900],
-        type: BottomNavigationBarType.fixed,
       ),
     );
   }
@@ -225,7 +205,7 @@ class _HomeShellState extends State<HomeShell> {
       case ServerStatus.found:
         return 'Found $ip';
       case ServerStatus.error:
-         return 'Connection Error';
+        return 'Connection Error';
       case ServerStatus.disconnected:
       default:
         return 'Disconnected';
