@@ -1,33 +1,66 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'theme/app_theme.dart';
-import 'providers/server_provider.dart';
-import 'providers/pc_provider.dart';
-import 'screens/connection_screen.dart';
 
 void main() {
-  runApp(const PCRemoteApp());
+  runApp(const MyApp());
 }
 
-class PCRemoteApp extends StatelessWidget {
-  const PCRemoteApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => ServerProvider()),
-        ChangeNotifierProxyProvider<ServerProvider, PCProvider>(
-          create: (context) => PCProvider(context.read<ServerProvider>()),
-          update: (context, server, previous) => 
-              previous ?? PCProvider(server)..updateConnection(),
+    return MaterialApp(
+      title: 'Flutter Demo',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+    );
+  }
+}
+
+class MyHomePage extends StatefulWidget {
+  const MyHomePage({Key? key, required this.title}) : super(key: key);
+
+  final String title;
+
+  @override
+  State<MyHomePage> createState() => _MyHomePageState();
+}
+
+class _MyHomePageState extends State<MyHomePage> {
+  int _counter = 0;
+
+  void _incrementCounter() {
+    setState(() {
+      _counter++;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.title),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            const Text(
+              'You have pushed the button this many times:',
+            ),
+            Text(
+              '$_counter',
+              style: Theme.of(context).textTheme.displayMedium,
         ),
-      ],
-      child: MaterialApp(
-        title: 'PC Remote',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.darkTheme,
-        home: const ConnectionScreen(),
+          ],
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _incrementCounter,
+        tooltip: 'Increment',
+        child: const Icon(Icons.add),
       ),
     );
   }
