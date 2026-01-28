@@ -4,15 +4,23 @@ from api import system, files ,media
 from utils.auth_utils import validate_api_key
 from utils.discovery import start_mdns_broadcast, stop_mdns_broadcast
 from contextlib import asynccontextmanager
-
+import ctypes
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # STARTUP: Start broadcasting so the Flutter app can find us
+    # STARTUP
     zc, info = start_mdns_broadcast(port=8080)
-    yield   #does all the funcationality while being paused here?
-    # SHUTDOWN: Tell the network we are leaving
+    # Initialize COM for the main thread
+    try:
+        ctypes.oledll.ole32.CoInitializeEx(None, 0x0)
+    except: pass
+    
+    yield
+    
+    # SHUTDOWN
     stop_mdns_broadcast(zc, info)
+    from comtypes import CoUninitialize
+    CoUninitialize()
 
 
 app= FastAPI(

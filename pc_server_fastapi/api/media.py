@@ -1,9 +1,12 @@
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect , Depends
 from pycaw.pycaw import AudioUtilities,  IAudioEndpointVolume, EDataFlow,  ERole
 
 from comtypes import CLSCTX_ALL, CoInitialize, CoUninitialize
 import ctypes
 
+from utils.auth_utils import validate_api_key
+#MTA constant
+COINIT_MULTITHREADED = 0x0
 router = APIRouter()
 
 def get_volume_interface():
@@ -27,17 +30,10 @@ def get_volume_interface():
         traceback.print_exc()
         raise
 
-@router.get("/volume")
+@router.get("/volume", dependencies=[Depends(validate_api_key)])
 def get_volume():
-    try:
-        volume = get_volume_interface()
-        current_percent = int(volume.GetMasterVolumeLevelScalar() * 100)
-        return {"level": current_percent}
-    except Exception as e:
-        print(f"Volume Error: {e}")
-        return {"level": 0}
-    finally:
-        CoUninitialize()
+    volume = get_volume_interface()
+    return {"level": int(volume.GetMasterVolumeLevelScalar() * 100)}
 
 @router.post("/volume/{level}")
 def set_volume(level: int):
@@ -106,8 +102,7 @@ async def websocket_volume(websocket: WebSocket):
     
     #initialize COM and the interface ONCE at the start of the connection
     try:
-        from comtypes import CoInitialize, CoUninitialize
-        CoInitialize()
+        ctypes.oledll.ole32.CoInitializeEx(None, COINIT_MULTITHREADED)
         volume_interface = get_volume_interface() 
         
         while True:
