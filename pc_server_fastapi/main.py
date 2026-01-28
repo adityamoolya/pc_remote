@@ -37,9 +37,10 @@ app.include_router(
 
 app.include_router(
     media.router, 
-    prefix="/media", 
+    prefix="/media" , 
     tags=["media tools"],
-    dependencies=[Depends(validate_api_key)]
+    # dependencies=[Depends(validate_api_key)]
+    #turned off temperaily for debugging
 )
 
 

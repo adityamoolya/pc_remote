@@ -1,10 +1,6 @@
-from fastapi import APIRouter
-from pycaw.pycaw import (
-    AudioUtilities, 
-    IAudioEndpointVolume, 
-    EDataFlow, 
-    ERole
-)
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from pycaw.pycaw import AudioUtilities,  IAudioEndpointVolume, EDataFlow,  ERole
+
 from comtypes import CLSCTX_ALL, CoInitialize, CoUninitialize
 import ctypes
 
@@ -102,3 +98,32 @@ def prev_track():
     ctypes.windll.user32.keybd_event(VK_MEDIA_PREV_TRACK, 0, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0)
     
     return {"status": "executed"}
+
+#using websocket to control audio
+@router.websocket("/ws/volume")
+async def websocket_volume(websocket: WebSocket):
+    await websocket.accept()
+    
+    #initialize COM and the interface ONCE at the start of the connection
+    try:
+        from comtypes import CoInitialize, CoUninitialize
+        CoInitialize()
+        volume_interface = get_volume_interface() 
+        
+        while True:
+            #wait for data from mobile app
+            data = await websocket.receive_text()
+            try:
+                level = int(data)
+                scalar = max(0.0, min(1.0, level / 100.0))
+                
+                #reuse the existing interface
+                volume_interface.SetMasterVolumeLevelScalar(scalar, None)
+            except ValueError:
+                continue 
+                
+    except WebSocketDisconnect:
+        print("Volume WebSocket closedd")
+    finally:
+        #clean up COM when the connection is actually finished
+        CoUninitialize()
