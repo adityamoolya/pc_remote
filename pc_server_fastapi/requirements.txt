@@ -4,3 +4,8 @@ zeroconf
 pycaw
 comtypes
 python-dotenv
+
+
+# for streaming ,dxcam for screen capturing , opencv for jpeg encoding
+dxcam
+opencv-python

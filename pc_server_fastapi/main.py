@@ -1,6 +1,6 @@
 from fastapi import FastAPI ,Depends
 import uvicorn
-from api import system, files ,media
+from api import system, files ,media , stream
 from utils.auth_utils import validate_api_key
 from utils.discovery import start_mdns_broadcast, stop_mdns_broadcast
 from contextlib import asynccontextmanager
@@ -49,6 +49,13 @@ app.include_router(
     tags=["media tools"],
     # dependencies=[Depends(validate_api_key)]
     #turned off temperaily for debugging
+)
+
+app.include_router(
+    stream.router, 
+    prefix="/stream", 
+    tags=["stream"], 
+    dependencies=[Depends(validate_api_key)]
 )
 
 
