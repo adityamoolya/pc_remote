@@ -1,8 +1,8 @@
 import asyncio
 import dxcam
 import cv2
-import socket #fastapi is based on tcp ,therefoe sockets is used to transport via UDP
-
+import socket
+#BUG: fix colour grading issue when streamed
 class ScreenStreamer:
     def __init__(self, host="0.0.0.0", port=9999):
         self.host = host
@@ -13,22 +13,35 @@ class ScreenStreamer:
 
     async def start_streaming(self, target_ip, target_port):
         self.running = True
-        #start capture at a 30 FPS  
-        self.camera.start(target_fps=30) 
+        #downgraded to 20
+        self.camera.start(target_fps=20) 
         
         while self.running:
             frame = self.camera.get_latest_frame()
             if frame is not None:
-                #convert BGR to RGB if needed and encode to JPEG
-                _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 50])
-                data = buffer.tobytes()
+                try:
+                    # 1. RESIZE: Shrink to 480p to ensure it fits in a UDP packet
+                    # A 1080p JPEG is usually > 100KB, UDP limit is 64KB.
+                    small_frame = cv2.resize(frame, (854, 480)) 
+                    
+                    # 2. ENCODE: Use low quality (30) for testing
+                    _, buffer = cv2.imencode('.jpg', small_frame, [cv2.IMWRITE_JPEG_QUALITY, 30])
+                    data = buffer.tobytes()
+                    data_size = len(data)
 
-                #UDP Chunking (just sending small frames)
-                if len(data) < 65507: 
-                    self.sock.sendto(data, (target_ip, target_port))
+                    # 3. SEND: Only send if it's under the limit
+                    if data_size < 65507:
+                        self.sock.sendto(data, (target_ip, target_port))
+                        # print(f"[STREAM] Sent frame: {data_size} bytes") # Uncomment to spam-check
+                    else:
+                        print(f"[STREAM] Frame too large: {data_size} bytes. Lower quality further.")
+                
+                except Exception as e:
+                    print(f"[STREAM] Error: {e}")
             
-            await asyncio.sleep(0.01) # Yield to event loop
+            await asyncio.sleep(0.03) # ~30 FPS
 
     def stop_streaming(self):
+        print("[STREAM] Stopping...")
         self.running = False
         self.camera.stop()
