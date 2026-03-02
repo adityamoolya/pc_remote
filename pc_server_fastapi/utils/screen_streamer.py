@@ -22,6 +22,7 @@ class ScreenStreamer:
                 try:
                     # 1. RESIZE: Shrink to 480p to ensure it fits in a UDP packet
                     # A 1080p JPEG is usually > 100KB, UDP limit is 64KB.
+                    frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
                     small_frame = cv2.resize(frame, (854, 480)) 
                     
                     # 2. ENCODE: Use low quality (30) for testing
