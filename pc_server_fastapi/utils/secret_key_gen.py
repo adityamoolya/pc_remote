@@ -3,8 +3,8 @@ import secrets
 import string
 from dotenv import load_dotenv, set_key
 
-
-ENV_PATH = ".env"
+# resolve .env relative to the project dir (one level up from utils/)
+ENV_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".env")
 
 #generates a fresh secret api key
 def generate_random_key(length=8):

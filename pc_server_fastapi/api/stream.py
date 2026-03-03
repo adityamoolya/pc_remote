@@ -1,23 +1,12 @@
 '''
-1. CAPTURE: Uses 'dxcam' to leverage the Windows Desktop Duplication API (DXGI).
-   This is high-performance, grabbing frames directly from the GPU with 
-   minimal CPU overhead compared to standard screenshot methods using pillow or similar libs.
+WebRTC Screen Sharing Endpoint
 
-2. ENCODE: Each captured frame is encoded into a JPEG format using 'cv2' 
-   (OpenCV). Quality is reduced (e.g., 50%) to shrink the payload size for 
-   faster network transmission.
+Uses aiortc for WebRTC peer connection and dxcam for GPU-accelerated
+screen capture via the Windows Desktop Duplication API (DXGI).
 
-3. TRANSPORT: Encoded byte data is streamed over UDP
-   Unlike TCP, UDP doesn't wait for acknowledgments, which significantly 
-   reduces latency. It's ideal for real-time video where losing a single 
-   frame is better than the whole stream lagging to catch up.
-
-4. CONTROL: The FastAPI endpoints (/start, /stop) act as a signaling layer 
-   to manage the lifecycle of the background streaming task.
+The /offer endpoint handles the SDP handshake between the mobile app and PC.
 '''
-import json
-from fastapi import APIRouter, BackgroundTasks ,Request ,HTTPException
-from utils.screen_streamer import ScreenStreamer
+from fastapi import APIRouter, BackgroundTasks, HTTPException
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from pydantic import BaseModel
 from utils.webrtc_streamer import ScreenShareTrack
@@ -30,6 +19,7 @@ class WebRTCOffer(BaseModel):
     sdp: str
     type: str
 
+#UDP appraoch that ive given up
 @router.post("/start")
 async def start_stream(target_ip: str, background_tasks: BackgroundTasks):
     if not streamer.running:
@@ -48,21 +38,22 @@ async def stop_stream():
 @router.post("/offer")
 async def webrtc_offer(offer_data: WebRTCOffer):
     try:
-        # already validated that offer_data contains sdp and type
         offer = RTCSessionDescription(sdp=offer_data.sdp, type=offer_data.type)
 
         pc = RTCPeerConnection()
         pcs.add(pc)
 
-        @pc.on("connectionstatechange")
-        async def on_connectionstatechange():
-            if pc.connectionState in ["failed", "closed"]:
-                await pc.close()
-                pcs.discard(pc)
-
         # Add the screen capture track
         video_track = ScreenShareTrack()
         pc.addTrack(video_track)
+
+        @pc.on("connectionstatechange")
+        async def on_connectionstatechange():
+            print(f"[WebRTC] Connection state: {pc.connectionState}")
+            if pc.connectionState in ["failed", "closed"]:
+                video_track.stop()   # release dxcam camera
+                await pc.close()
+                pcs.discard(pc)
 
         # Set remote description and create answer
         await pc.setRemoteDescription(offer)
