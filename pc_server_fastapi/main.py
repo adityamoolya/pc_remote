@@ -1,71 +1,66 @@
-from fastapi import FastAPI ,Depends
+import argparse
 import uvicorn
-from api import system, files ,media , stream
-from utils.auth_utils import validate_api_key
-from utils.discovery import start_mdns_broadcast, stop_mdns_broadcast
-from contextlib import asynccontextmanager
-import ctypes
+import qrcode
+from utils.secret_key_gen import rotate_key, get_or_create_key
+import cv2
+import numpy as np
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # STARTUP
-    zc, info = start_mdns_broadcast(port=8080)
-    # Initialize COM for the main thread
-    try:
-        ctypes.oledll.ole32.CoInitializeEx(None, 0x0)
-    except: pass
+def handle_serve(args):
+    uvicorn.run("server:app", host="0.0.0.0", port=8080, reload=True)
+
+
+def handle_pair(args):
+    key = get_or_create_key()
+    print(f"PAIRING KEY: {key}")
     
-    yield
-    
-    # SHUTDOWN
-    stop_mdns_broadcast(zc, info)
-    from comtypes import CoUninitialize
-    CoUninitialize()
+    qr = qrcode.QRCode(
+        box_size=10,
+        border=4,
+    )
+
+    qr.add_data(key)
+    qr.make(fit=True)
+
+    img = qr.make_image(fill_color="black", back_color="white")
+
+    # Convert PIL image → OpenCV format
+    #alternatively tkinter can also be used but i already have cv2 in requirements.txt 
+    img_np = np.array(img.convert("RGB"))
+    img_np = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
+
+    cv2.imshow("PyRemote Pairing QR", img_np)
+    cv2.waitKey(0)  
+    cv2.destroyAllWindows()
 
 
-app= FastAPI(
-    title="PCremote Server",
-    version="2.0.0",
-    lifespan=lifespan  #this enables mDNS broadcast on startup and stops it on shutdown
-)
+def handle_reset(args):
+    rotate_key()
+    print("Secret key rotated successfully.")
+    handle_pair(None)
 
-app.include_router(
-    system.router, 
-    prefix="/system", 
-    tags=["system manager"],
-    dependencies=[Depends(validate_api_key)]
-)
+def main():
+    parser = argparse.ArgumentParser(description="PyRemote CLI")
 
-app.include_router(
-    files.router, 
-    prefix="/files", 
-    tags=["file explorer"],
-    dependencies=[Depends(validate_api_key)]
-)
+    subparsers = parser.add_subparsers(dest="command")
 
-app.include_router(
-    media.router, 
-    prefix="/media" , 
-    tags=["media tools"],
-    # dependencies=[Depends(validate_api_key)]
-    #turned off temperaily for debugging
-)
+    # serve
+    # serve_parser = subparsers.add_parser("serve", help="Start the server")
+    # serve_parser.set_defaults(func=handle_serve)
 
-app.include_router(
-    stream.router, 
-    prefix="/stream", 
-    tags=["stream"], 
-    dependencies=[Depends(validate_api_key)]
-)
+    # pair
+    pair_parser = subparsers.add_parser("pair", help="Show pairing info")
+    pair_parser.set_defaults(func=handle_pair)
+
+    # reset
+    reset_parser = subparsers.add_parser("reset", help="Rotate secret key")
+    reset_parser.set_defaults(func=handle_reset)
+
+    # Default behavior
+    parser.set_defaults(func=handle_serve)
+
+    args = parser.parse_args()
+    args.func(args)
 
 
-@app.get("/", tags=["health"])
-def root():
-    return{"message":"api is healthy"}
-
-
-
-if __name__=="__main__":
-    # from utils.auth_utils import SECRET_KEY
-    # print(f"PAIRING CODE: {SECRET_KEY}")
-    uvicorn.run(app, host="0.0.0.0", port=8080)
+if __name__ == "__main__":
+    main()
