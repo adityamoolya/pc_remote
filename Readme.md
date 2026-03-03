@@ -17,6 +17,7 @@ PC Remote allows you to securely connect your Flutter-based mobile app to a Pyth
 - Execute remote commands like locking your workstation
 - Control media playback and system volume
 - Manage power options (sleep, shutdown)
+- Stream your screen to your phone in real-time via WebRTC
 
 This project started as a learning exercise for TCP sockets and Flutter, with an initial working prototype using raw TCP. For practical purposes, the server has been migrated to FastAPI.
 
@@ -48,12 +49,12 @@ The mobile app is being rebuilt from scratch to work with the new FastAPI backen
 - **File System Browsing** - List drives and browse directories
 - **File Download** - Download files from PC to mobile
 - **System Controls** - Lock, Sleep, Shutdown, Task Manager
-- **Volume Control** - Get and set system volume level
+- **Volume Control** - Get/set volume, mute toggle (REST + WebSocket)
+- **Media Playback** - Play/pause, next track, previous track
+- **Screen Sharing** - Real-time screen streaming via WebRTC using GPU-accelerated capture (dxcam)
 
 ### Planned
-- Media playback controls (play/pause, next, previous)
 - Two-way file transfer
-- Remote desktop streaming
 - Clipboard sharing
 
 ---
@@ -66,6 +67,8 @@ The mobile app is being rebuilt from scratch to work with the new FastAPI backen
 - `zeroconf` - mDNS service discovery
 - `pycaw` - Windows audio control
 - `ctypes` - Windows API access
+- `aiortc` / `av` - WebRTC peer connection and media
+- `dxcam` - GPU-accelerated screen capture (DXGI)
 
 ### Mobile App (Flutter/Dart)
 - `provider` - State management
@@ -86,11 +89,13 @@ pc_remote/
 │   ├── api/
 │   │   ├── system.py        # Lock, sleep, shutdown endpoints
 │   │   ├── files.py         # File browsing and download
-│   │   └── media.py         # Volume control
+│   │   ├── media.py         # Volume & media playback control
+│   │   └── stream.py        # WebRTC screen sharing
 │   └── utils/
 │       ├── auth_utils.py    # API key validation
 │       ├── discovery.py     # mDNS broadcast
-│       └── secret_key_gen.py
+│       ├── secret_key_gen.py
+│       └── webrtc_streamer.py  # dxcam screen capture track
 │
 ├── mobile_fastapi/          # Flutter app (rebuilding)
 │   └── lib/
@@ -132,7 +137,14 @@ The FastAPI server exposes the following endpoints:
 ### Media Controls (`/media`)
 - `GET /media/volume` - Get current volume level
 - `POST /media/volume/{level}` - Set volume level (0-100)
-- `POST /media/playpause` - Toggle play/pause (not yet implemented)
+- `POST /media/playpause` - Toggle play/pause
+- `POST /media/mute` - Toggle system mute
+- `POST /media/next` - Next track
+- `POST /media/prev` - Previous track
+- `WS /media/ws/volume` - Real-time volume control via WebSocket
+
+### Screen Sharing (`/stream`)
+- `POST /stream/offer` - WebRTC SDP handshake (send offer, receive answer)
 
 All endpoints except `/` require the `PLEASE_LET_ME_IN` header with a valid API key.
 
@@ -148,11 +160,40 @@ All endpoints except `/` require the `PLEASE_LET_ME_IN` header with a valid API 
 
 ### Server Setup
 
-Clone the repository, create a virtual environment (recommended), install the dependencies from requirements.txt, and run the server with `python main.py`. The server will start on port 8080 and broadcast itself via mDNS for automatic discovery.
+```bash
+# 1. Clone and enter the project
+git clone <repo-url>
+cd PYREMOTE
+
+# 2. Create and activate a virtual environment
+python -m venv venv312
+venv312\Scripts\activate        # Windows
+
+# 3. Install dependencies
+pip install -r pc_server_fastapi/requirements.txt
+
+# 4. Start the server
+cd pc_server_fastapi
+python main.py
+```
+
+The server starts on port **8080** and broadcasts itself via mDNS. A secret API key is auto-generated on first run and stored in `pc_server_fastapi/.env`.
 
 ### Mobile App
 
-The mobile app is currently being rebuilt.....
+```bash
+# 1. Enter the mobile project
+cd mobile_fastapi
+
+# 2. Get dependencies
+flutter pub get
+
+# 3. Build and install on your phone (USB debugging must be enabled)
+flutter build apk --release
+flutter install
+```
+
+Make sure your phone and PC are on the **same Wi-Fi network**. The app will auto-discover the server via mDNS.
 
 ---
 
