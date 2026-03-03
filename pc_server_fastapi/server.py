@@ -9,7 +9,7 @@ import ctypes
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # STARTUP
-    zc, info = start_mdns_broadcast(port=8080)
+    zc, info = await start_mdns_broadcast(port=8080)
     # Initialize COM for the main thread
     try:
         ctypes.oledll.ole32.CoInitializeEx(None, 0x0)
@@ -18,10 +18,13 @@ async def lifespan(app: FastAPI):
     yield
     
     # SHUTDOWN
-    stop_mdns_broadcast(zc, info)
+    if zc:
+        await stop_mdns_broadcast(zc, info)
+    
     from comtypes import CoUninitialize
-    CoUninitialize()
-
+    try:
+        CoUninitialize()
+    except: pass
 
 app= FastAPI(
     title="PCremote Server",
@@ -68,4 +71,4 @@ def root():
 if __name__=="__main__":
     # from utils.auth_utils import SECRET_KEY
     # print(f"PAIRING CODE: {SECRET_KEY}")
-    uvicorn.run(app, host="0.0.0.0", port=8080,reload=True)
+    uvicorn.run("server:app", host="0.0.0.0", port=8080,reload=True)

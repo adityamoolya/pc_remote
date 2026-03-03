@@ -1,5 +1,7 @@
 import socket
+import traceback
 from zeroconf import IPVersion, ServiceInfo, Zeroconf #type:ignore
+from zeroconf.asyncio import AsyncZeroconf
 # import time
 
 #helper to get the actual local IP of the PC on the Wi-Fi network.
@@ -16,7 +18,7 @@ def get_local_ip():
     return ip
 
 #Starts broadcasting the PC Remote service over mDNS.
-def start_mdns_broadcast(port: int):
+async def start_mdns_broadcast(port: int):
     hostname = socket.gethostname()
     local_ip = get_local_ip()
     
@@ -37,24 +39,24 @@ def start_mdns_broadcast(port: int):
     )
 
     try:
-        zc = Zeroconf(ip_version=IPVersion.V4Only)
-        zc.register_service(info, ttl=60)
+        zc = AsyncZeroconf(ip_version=IPVersion.V4Only)
+        await zc.async_register_service(info, ttl=60)
         print(f"mDNS Broadcast started: {hostname}.local ({local_ip})")
+        return zc, info
     except Exception as e:
         print(f"mDNS Broadcast failed (non-critical): {e}")
-        zc = None
-    return zc, info
+        traceback.print_exc()
+        print(f"mDNS Broadcast failed (non-critical): {e}")
+        return None, None
 
 
  #stops the broadcast
-def stop_mdns_broadcast(zc: Zeroconf, info: ServiceInfo):
-   
+async def stop_mdns_broadcast(zc: AsyncZeroconf, info: ServiceInfo):
     if zc:
-        zc.unregister_service(info)
-        zc.close()
-        # print("mDNS Broadcast stopped.")
+        await zc.async_unregister_service(info)
+        await zc.close()
 
 
-# if __name__=="__main__":
-#     start_mdns_broadcast(8080)
+if __name__=="__main__":
+    start_mdns_broadcast(8080)
     

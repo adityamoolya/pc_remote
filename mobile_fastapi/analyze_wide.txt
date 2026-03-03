@@ -1,0 +1,15 @@
+﻿Analyzing mobile_fastapi...                                     
+
+   info - Use 'const' with the constructor to improve performance - lib\main.dart:25:24 - prefer_const_constructors
+warning - Unused import: 'dart:io' - lib\services\api_service.dart:1:8 - unused_import
+warning - The value of the field '_apiKey' isn't used - lib\services\api_service.dart:9:10 - unused_field
+  error - The getter 'ready' isn't defined for the type 'BonsoirDiscovery' - lib\services\connection_provider.dart:58:17 - undefined_getter
+
+flutter : 4 issues found. (ran in 1.6s)
+At line:1 char:1
++ flutter analyze 2>&1 | Out-String -Width 500 | Set-Content D:\pythonn ...
++ ~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotS    pecified: (4 issues found. (ra    n in 1.6s):String) [], RemoteE    xception
+    + FullyQualifiedErrorId : Nati    veCommandError
+ 
+
