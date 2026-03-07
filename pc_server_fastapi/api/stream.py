@@ -6,6 +6,7 @@ screen capture via the Windows Desktop Duplication API (DXGI).
 
 The /offer endpoint handles the SDP handshake between the mobile app and PC.
 '''
+import traceback
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from pydantic import BaseModel
@@ -13,7 +14,7 @@ from utils.screen_streamer import ScreenStreamer
 from utils.webrtc_streamer import ScreenShareTrack
 
 router = APIRouter()
-streamer = ScreenStreamer()
+streamer = None   # lazy-init: created only when /start (UDP) is used
 pcs = set()
 
 class WebRTCOffer(BaseModel):
@@ -23,6 +24,9 @@ class WebRTCOffer(BaseModel):
 # #UDP appraoch that ive given up
 @router.post("/start")
 async def start_stream(target_ip: str, background_tasks: BackgroundTasks):
+    global streamer
+    if streamer is None:
+        streamer = ScreenStreamer()
     if not streamer.running:
         #run the streaming loop in the background
         background_tasks.add_task(streamer.start_streaming, target_ip, 9999)
@@ -31,7 +35,8 @@ async def start_stream(target_ip: str, background_tasks: BackgroundTasks):
 
 @router.post("/stop")
 async def stop_stream():
-    streamer.stop_streaming()
+    if streamer is not None:
+        streamer.stop_streaming()
     return {"status": "Streaming stopped"}
 
 
@@ -44,10 +49,9 @@ async def webrtc_offer(offer_data: WebRTCOffer):
         pc = RTCPeerConnection()
         pcs.add(pc)
 
-        # Add the screen capture track
         video_track = ScreenShareTrack()
-        pc.addTrack(video_track)
 
+        # Register event handlers BEFORE negotiation
         @pc.on("connectionstatechange")
         async def on_connectionstatechange():
             print(f"[WebRTC] Connection state: {pc.connectionState}")
@@ -56,8 +60,17 @@ async def webrtc_offer(offer_data: WebRTCOffer):
                 await pc.close()
                 pcs.discard(pc)
 
-        # Set remote description and create answer
+        # 1. Add the screen-capture track via addTransceiver (NOT addTrack)
+        #    with an explicit "sendonly" direction *before* setRemoteDescription.
+        #    aiortc will match this transceiver to the offer's video m-line
+        #    and set _offerDirection, avoiding the None-direction crash.
+        pc.addTransceiver(video_track, direction="sendonly")
+
+        # 2. Set the remote offer — aiortc matches our transceiver to the
+        #    offer's video section and sets _offerDirection + MID.
         await pc.setRemoteDescription(offer)
+
+        # 3. Create and apply the answer
         answer = await pc.createAnswer()
         await pc.setLocalDescription(answer)
 
@@ -66,5 +79,6 @@ async def webrtc_offer(offer_data: WebRTCOffer):
             "type": pc.localDescription.type
         }
     except Exception as e:
+        traceback.print_exc()
         print(f"WebRTC Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
