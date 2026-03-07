@@ -52,9 +52,12 @@ async def start_mdns_broadcast(port: int):
 
  #stops the broadcast
 async def stop_mdns_broadcast(zc: AsyncZeroconf, info: ServiceInfo):
-    if zc:
-        await zc.async_unregister_service(info)
-        await zc.close()
+    try:
+        if zc:
+            await zc.async_unregister_service(info)
+            await zc.async_close()
+    except Exception as e:
+        print("mDNS shutdown warning:", e) 
 
 
 if __name__=="__main__":

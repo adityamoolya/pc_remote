@@ -5,8 +5,12 @@ from utils.secret_key_gen import rotate_key, get_or_create_key
 import cv2
 import numpy as np
 
-def handle_serve(args):
-    uvicorn.run("server:app", host="0.0.0.0", port=8080, reload=True)
+def handle_serve_powershell(args):
+    uvicorn.run("server:app", host="0.0.0.0", port=8080)
+     #removed reload casue powershell function casues delay while shutting down watcher (StatReload)
+
+def handle_serve_debug(args):
+    uvicorn.run("server:app", host="0.0.0.0", port=8080 ,reload=True)
 
 
 def handle_pair(args):
@@ -54,9 +58,13 @@ def main():
     # reset
     reset_parser = subparsers.add_parser("reset", help="Rotate secret key")
     reset_parser.set_defaults(func=handle_reset)
+    
+    # prod mode with hotreload
+    reset_parser = subparsers.add_parser("debug", help="start server wit Hot Reload")
+    reset_parser.set_defaults(func=handle_serve_debug)
 
-    # Default behavior
-    parser.set_defaults(func=handle_serve)
+    # Default behavior, debug mode without hotreload (for powershell fucntion)
+    parser.set_defaults(func=handle_serve_powershell)
 
     args = parser.parse_args()
     args.func(args)
