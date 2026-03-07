@@ -60,17 +60,28 @@ async def webrtc_offer(offer_data: WebRTCOffer):
                 await pc.close()
                 pcs.discard(pc)
 
-        # 1. Add the screen-capture track via addTransceiver (NOT addTrack)
-        #    with an explicit "sendonly" direction *before* setRemoteDescription.
-        #    aiortc will match this transceiver to the offer's video m-line
-        #    and set _offerDirection, avoiding the None-direction crash.
-        pc.addTransceiver(video_track, direction="sendonly")
+        # Log the offer SDP for debugging
+        print(f"[DEBUG] Offer SDP:\n{offer_data.sdp}")
 
-        # 2. Set the remote offer — aiortc matches our transceiver to the
-        #    offer's video section and sets _offerDirection + MID.
+        # 1. Let aiortc create transceivers from the offer
         await pc.setRemoteDescription(offer)
 
-        # 3. Create and apply the answer
+        # 2. Add our screen-capture track
+        pc.addTrack(video_track)
+
+        # Debug: show transceiver state
+        for i, t in enumerate(pc.getTransceivers()):
+            print(f"[DEBUG] T{i}: kind={t.kind}, mid={t.mid}, "
+                  f"dir={t.direction}, offerDir={t._offerDirection}")
+
+        # 3. Workaround for aiortc bug: setLocalDescription crashes if
+        #    any transceiver has _offerDirection=None.  Fall back to
+        #    the transceiver's own direction so and_direction() won't fail.
+        for t in pc.getTransceivers():
+            if t._offerDirection is None:
+                t._offerDirection = t.direction
+
+        # 4. Create and apply the answer
         answer = await pc.createAnswer()
         await pc.setLocalDescription(answer)
 

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import '../services/connection_provider.dart';
 import 'file_explorer_screen.dart';
+import 'screen_stream_screen.dart';
 import 'settings_screen.dart';
 import 'home_screen.dart';
 
@@ -220,6 +221,11 @@ class _ControlsTabState extends State<_ControlsTab> {
             _actionCard(Icons.lock_rounded, 'Lock', () => _doAction('system', 'lock', 'Lock')),
             _actionCard(Icons.power_settings_new_rounded, 'Sleep', () => _doAction('system', 'sleep', 'Sleep')),
             _actionCard(Icons.desktop_windows_rounded, 'Shutdown', () => _doAction('system', 'shutdown', 'Shutdown')),
+            _actionCard(Icons.monitor_rounded, 'Stream', () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => ScreenStreamScreen(api: widget.conn.api)),
+              );
+            }),
             _actionCard(Icons.table_chart_rounded, 'Task Mgr', () => _doAction('system', 'taskmanager', 'Task Manager')),
           ],
         ),

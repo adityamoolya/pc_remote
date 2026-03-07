@@ -129,6 +129,18 @@ class ApiService {
     }
   }
 
+  Future<Map<String, dynamic>?> sendWebRTCOffer(String sdp, String type) async {
+    try {
+      final resp = await _dio.post(
+        '/stream/offer',
+        data: {'sdp': sdp, 'type': type},
+      );
+      return resp.data as Map<String, dynamic>;
+    } catch (_) {
+      return null;
+    }
+  }
+
   String get wsVolumeUrl {
     final uri = Uri.parse(_baseUrl);
     return 'ws://${uri.host}:${uri.port}/media/ws/volume';
