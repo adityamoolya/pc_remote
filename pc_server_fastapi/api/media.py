@@ -102,7 +102,7 @@ async def websocket_volume(websocket: WebSocket):
     
     #initialize COM and the interface ONCE at the start of the connection
     try:
-        ctypes.oledll.ole32.CoInitializeEx(None, COINIT_MULTITHREADED)
+        # ctypes.oledll.ole32.CoInitializeEx(None, COINIT_MULTITHREADED)
         volume_interface = get_volume_interface() 
         
         while True:

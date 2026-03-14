@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends
 import uvicorn
-from api import system, files, media, stream
+from api import stun_stream, system, files, media, stream
 from utils.auth_utils import validate_api_key
 from utils.discovery import start_mdns_broadcast, stop_mdns_broadcast
 from contextlib import asynccontextmanager
@@ -37,9 +37,12 @@ def create_app(mdns: bool = False) -> FastAPI:
 
     app.include_router(system.router,  prefix="/system", tags=["system manager"],  dependencies=[Depends(validate_api_key)])
     app.include_router(files.router,   prefix="/files",  tags=["file explorer"],   dependencies=[Depends(validate_api_key)])
-    app.include_router(media.router,   prefix="/media",  tags=["media tools"])  # auth temporarily off
+    app.include_router(media.router,   prefix="/media",  tags=["media tools"],     dependencies=[Depends(validate_api_key)])
+
+    # if mdns:
     app.include_router(stream.router,  prefix="/stream", tags=["stream"],          dependencies=[Depends(validate_api_key)])
 
+    # else: app.include_router(sstun_stream.router,  prefix="/STUN_stream", tags=["stream"],          dependencies=[Depends(validate_api_key)])
     @app.get("/", tags=["health"])
     def root():
         return {"message": "api is healthy"}

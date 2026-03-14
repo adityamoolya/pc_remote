@@ -21,23 +21,23 @@ class WebRTCOffer(BaseModel):
     sdp: str
     type: str
 
-# #UDP appraoch that ive given up
-@router.post("/start")
-async def start_stream(target_ip: str, background_tasks: BackgroundTasks):
-    global streamer
-    if streamer is None:
-        streamer = ScreenStreamer()
-    if not streamer.running:
-        #run the streaming loop in the background
-        background_tasks.add_task(streamer.start_streaming, target_ip, 9999)
-        return {"status": "Streaming started", "target": target_ip}
-    return {"status": "Already streaming"}
+# #UDP appraoch that ive given up ,commenting for now
+# @router.post("/start")
+# async def start_stream(target_ip: str, background_tasks: BackgroundTasks):
+#     global streamer
+#     if streamer is None:
+#         streamer = ScreenStreamer()
+#     if not streamer.running:
+#         #run the streaming loop in the background
+#         background_tasks.add_task(streamer.start_streaming, target_ip, 9999)
+#         return {"status": "Streaming started", "target": target_ip}
+#     return {"status": "Already streaming"}
 
-@router.post("/stop")
-async def stop_stream():
-    if streamer is not None:
-        streamer.stop_streaming()
-    return {"status": "Streaming stopped"}
+# @router.post("/stop")
+# async def stop_stream():
+#     if streamer is not None:
+#         streamer.stop_streaming()
+#     return {"status": "Streaming stopped"}
 
 
 #handles the handshake between  app and PC ,NOT related to UDP-JPEG compression streamming
