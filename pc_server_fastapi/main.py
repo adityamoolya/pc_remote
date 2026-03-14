@@ -1,73 +1,81 @@
 import argparse
-import uvicorn
 import qrcode
+import uvicorn
+import logging
+import subprocess
+import re
+import atexit
 from utils.secret_key_gen import rotate_key, get_or_create_key
-import cv2
-import numpy as np
+import server
 
-def handle_serve_powershell(args):
-    uvicorn.run("server:app", host="0.0.0.0", port=8080)
-     #removed reload casue powershell function casues delay while shutting down watcher (StatReload)
-
-def handle_serve_debug(args):
-    uvicorn.run("server:app", host="0.0.0.0", port=8080 ,reload=True)
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+logger = logging.getLogger(__name__)
 
 
-def handle_pair(args):
+def handle_pair(reset: bool = False):
+    if reset:
+        rotate_key()
+        logger.info("SECRET KEY ROTATED")
     key = get_or_create_key()
-    print(f"PAIRING KEY: {key}")
-    
-    qr = qrcode.QRCode(
-        box_size=10,
-        border=4,
+    logger.info(f"PAIRING KEY: {key}")
+    qrcode.make(key).show()
+
+
+def _start_local(debug: bool):
+    server.app = server.create_app(mdns=True)
+    uvicorn.run("server:app", host="0.0.0.0", port=8080, reload=debug)
+
+
+def _start_broadcast(debug: bool):
+    server.app = server.create_app(mdns=False)
+
+    uvicorn_cmd = ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8080"]
+    if debug:
+        uvicorn_cmd.append("--reload")
+
+    uvicorn_process = subprocess.Popen(uvicorn_cmd)
+    atexit.register(uvicorn_process.terminate)
+
+    cloudflared_process = subprocess.Popen(
+        ["cloudflared", "tunnel", "--url", "http://localhost:8080"],
+        stderr=subprocess.PIPE
     )
+    atexit.register(cloudflared_process.terminate)
 
-    qr.add_data(key)
-    qr.make(fit=True)
+    for line in cloudflared_process.stderr:
+        match = re.search(r"https://[\w-]+\.trycloudflare\.com", line.decode())
+        if match:
+            url = match.group(0)
+            logger.info(f"PUBLIC URL: {url}")
+            qrcode.make(url).show()
+            break
 
-    img = qr.make_image(fill_color="black", back_color="white")
+    cloudflared_process.wait()
 
-    # Convert PIL image → OpenCV format
-    #alternatively tkinter can also be used but i already have cv2 in requirements.txt 
-    img_np = np.array(img.convert("RGB"))
-    img_np = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
-
-    cv2.imshow("PyRemote Pairing QR", img_np)
-    cv2.waitKey(0)  
-    cv2.destroyAllWindows()
-
-
-def handle_reset(args):
-    rotate_key()
-    print("Secret key rotated successfully.")
-    handle_pair(None)
 
 def main():
     parser = argparse.ArgumentParser(description="PyRemote CLI")
-
-    subparsers = parser.add_subparsers(dest="command")
-
-    # serve
-    # serve_parser = subparsers.add_parser("serve", help="Start the server")
-    # serve_parser.set_defaults(func=handle_serve)
-
-    # pair
-    pair_parser = subparsers.add_parser("pair", help="Show pairing info")
-    pair_parser.set_defaults(func=handle_pair)
-
-    # reset
-    reset_parser = subparsers.add_parser("reset", help="Rotate secret key")
-    reset_parser.set_defaults(func=handle_reset)
-    
-    # prod mode with hotreload
-    reset_parser = subparsers.add_parser("debug", help="start server wit Hot Reload")
-    reset_parser.set_defaults(func=handle_serve_debug)
-
-    # Default behavior, debug mode without hotreload (for powershell fucntion)
-    parser.set_defaults(func=handle_serve_powershell)
+    parser.add_argument("mode", choices=["broadcast", "local"], help="broadcast: Cloudflare tunnel, local: local network")
+    parser.add_argument("--pair",  action="store_true", help="Show pairing QR before starting server")
+    parser.add_argument("--debug", action="store_true", help="Start server with hot reload")
+    parser.add_argument("--reset", action="store_true", help="Rotate secret key and exit")
 
     args = parser.parse_args()
-    args.func(args)
+
+    if args.reset:
+        rotate_key()
+        logger.info("SECRET KEY ROTATED")
+        return
+
+    if args.pair:
+        handle_pair()
+
+    if args.mode == "broadcast":
+        logger.info("STARTING SERVER ON CLOUDFLARE TUNNEL")
+        _start_broadcast(args.debug)
+    else:
+        logger.info("STARTING SERVER ON LOCAL NETWORK")
+        _start_local(args.debug)
 
 
 if __name__ == "__main__":
