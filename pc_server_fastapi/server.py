@@ -39,10 +39,10 @@ def create_app(mdns: bool = False) -> FastAPI:
     app.include_router(files.router,   prefix="/files",  tags=["file explorer"],   dependencies=[Depends(validate_api_key)])
     app.include_router(media.router,   prefix="/media",  tags=["media tools"],     dependencies=[Depends(validate_api_key)])
 
-    # if mdns:
-    app.include_router(stream.router,  prefix="/stream", tags=["stream"],          dependencies=[Depends(validate_api_key)])
+    if mdns:
+        app.include_router(stream.router,  prefix="/stream", tags=["stream"],          dependencies=[Depends(validate_api_key)])
 
-    # else: app.include_router(sstun_stream.router,  prefix="/STUN_stream", tags=["stream"],          dependencies=[Depends(validate_api_key)])
+    else: app.include_router(stun_stream.router,  prefix="/STUN_stream", tags=["stream"],          dependencies=[Depends(validate_api_key)])
     @app.get("/", tags=["health"])
     def root():
         return {"message": "api is healthy"}
