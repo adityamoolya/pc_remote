@@ -35,7 +35,7 @@ def get_volume():
     volume = get_volume_interface()
     return {"level": int(volume.GetMasterVolumeLevelScalar() * 100)}
 
-@router.post("/volume/{level}")
+@router.post("/volume/{level}", dependencies=[Depends(validate_api_key)])
 def set_volume(level: int):
     try:
         volume = get_volume_interface()

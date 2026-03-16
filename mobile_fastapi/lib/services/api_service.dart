@@ -106,7 +106,8 @@ class ApiService {
       if (cached != null && !cached.isExpired) return cached.data;
     }
     try {
-      final resp = await _dio.get('/files/list', queryParameters: {'path': path});
+      final encodedPath = Uri.encodeComponent(path);
+      final resp = await _dio.get('/files/list?path=$encodedPath');
       final List<dynamic> data = resp.data;
       final items = data.map((d) => FileItem.fromJson(d as Map<String, dynamic>)).toList();
       _dirCache[path] = _CacheEntry(items);
@@ -118,9 +119,9 @@ class ApiService {
 
   Future<Uint8List?> downloadFile(String path) async {
     try {
+      final encodedPath = Uri.encodeComponent(path);
       final resp = await _dio.get(
-        '/files/download',
-        queryParameters: {'path': path},
+        '/files/download?path=$encodedPath',
         options: Options(responseType: ResponseType.bytes),
       );
       return Uint8List.fromList(resp.data);
@@ -129,10 +130,10 @@ class ApiService {
     }
   }
 
-  Future<Map<String, dynamic>?> sendWebRTCOffer(String sdp, String type) async {
+  Future<Map<String, dynamic>?> sendWebRTCOffer(String sdp, String type, {String endpointPath = '/stream/offer'}) async {
     try {
       final resp = await _dio.post(
-        '/stream/offer',
+        endpointPath,
         data: {'sdp': sdp, 'type': type},
       );
       return resp.data as Map<String, dynamic>;
@@ -143,7 +144,9 @@ class ApiService {
 
   String get wsVolumeUrl {
     final uri = Uri.parse(_baseUrl);
-    return 'ws://${uri.host}:${uri.port}/media/ws/volume';
+    final scheme = uri.scheme == 'https' ? 'wss' : 'ws';
+    final port = uri.hasPort ? ':${uri.port}' : '';
+    return '$scheme://${uri.host}$port/media/ws/volume';
   }
 }
 

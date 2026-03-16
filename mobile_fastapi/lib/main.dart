@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'services/connection_provider.dart';
-import 'screens/home_screen.dart';
+import 'screens/connection_mode_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -50,7 +50,7 @@ class PCRemoteApp extends StatelessWidget {
             unselectedItemColor: Color(0xFF8B949E),
           ),
         ),
-        home: const HomeScreen(),
+        home: const ConnectionModeScreen(),
       ),
     );
   }

@@ -4,7 +4,8 @@ import '../services/api_service.dart';
 
 class ScreenStreamScreen extends StatefulWidget {
   final ApiService api;
-  const ScreenStreamScreen({super.key, required this.api});
+  final bool isBroadcastMode;
+  const ScreenStreamScreen({super.key, required this.api, this.isBroadcastMode = false});
 
   @override
   State<ScreenStreamScreen> createState() => _ScreenStreamScreenState();
@@ -69,7 +70,8 @@ class _ScreenStreamScreenState extends State<ScreenStreamScreen> {
       await _peerConnection!.setLocalDescription(offer);
 
       // Send to server
-      final answerData = await widget.api.sendWebRTCOffer(offer.sdp!, offer.type!);
+      final endpoint = widget.isBroadcastMode ? '/STUN_stream/offer' : '/stream/offer';
+      final answerData = await widget.api.sendWebRTCOffer(offer.sdp!, offer.type!, endpointPath: endpoint);
       if (answerData == null) {
         _setError('Failed to connect to streaming server.');
         return;

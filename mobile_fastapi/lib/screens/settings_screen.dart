@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/connection_provider.dart';
-import 'home_screen.dart';
+import 'connection_mode_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   final ConnectionProvider conn;
@@ -30,11 +30,11 @@ class SettingsScreen extends StatelessWidget {
             padding: const EdgeInsets.all(20),
             child: Column(
               children: [
-                _infoRow('Name', server?.name ?? '—'),
+                _infoRow('Mode', conn.isBroadcastMode ? 'Broadcast (WAN)' : 'Local Network (LAN)'),
                 const SizedBox(height: 12),
-                _infoRow('IP Address', server?.ip ?? '—'),
+                _infoRow('Name', server?.name ?? (conn.isBroadcastMode ? 'Broadcast' : '—')),
                 const SizedBox(height: 12),
-                _infoRow('Port', server?.port.toString() ?? '—'),
+                _infoRow('Address', conn.isBroadcastMode ? (conn.broadcastBaseUrl ?? '—') : (server != null ? '${server.ip}:${server.port}' : '—')),
                 const SizedBox(height: 12),
                 _infoRow('Status', conn.isConnected ? 'Connected' : 'Disconnected'),
               ],
@@ -56,6 +56,18 @@ class SettingsScreen extends StatelessWidget {
               style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 12),
             ),
             onTap: () => _showUnpairDialog(context),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.swap_horiz_rounded, color: Color(0xFF58A6FF)),
+            title: const Text('Switch Connection Mode'),
+            subtitle: Text(
+              'Go back to LAN / Broadcast selection',
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 12),
+            ),
+            onTap: () => _showSwitchModeDialog(context),
           ),
         ),
 
@@ -113,13 +125,44 @@ class SettingsScreen extends StatelessWidget {
               Navigator.pop(ctx);
               await conn.unpair();
               if (context.mounted) {
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (_) => const HomeScreen()),
+               Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const ConnectionModeScreen()),
                   (route) => false,
                 );
               }
             },
             child: const Text('Unpair'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSwitchModeDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1C2128),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Switch Mode?'),
+        content: const Text('This will disconnect and return to the connection mode selector.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              conn.switchMode();
+              if (context.mounted) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const ConnectionModeScreen()),
+                  (route) => false,
+                );
+              }
+            },
+            child: const Text('Switch'),
           ),
         ],
       ),

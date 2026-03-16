@@ -5,6 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'api_service.dart';
 
 enum AppConnectionState { disconnected, discovering, connecting, connected }
+enum ConnectionMode { none, lan, broadcast }
 
 class DiscoveredServer {
   final String name;
@@ -19,9 +20,11 @@ class ConnectionProvider extends ChangeNotifier {
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   AppConnectionState _state = AppConnectionState.disconnected;
+  ConnectionMode _connectionMode = ConnectionMode.none;
   DiscoveredServer? _server;
   String? _apiKey;
   String _statusMessage = 'Looking for your PC...';
+  String? _broadcastBaseUrl;
 
   BonsoirDiscovery? _discovery;
   StreamSubscription<BonsoirDiscoveryEvent>? _discoverySub;
@@ -29,10 +32,13 @@ class ConnectionProvider extends ChangeNotifier {
 
   // Public getters
   AppConnectionState get state => _state;
+  ConnectionMode get connectionMode => _connectionMode;
   DiscoveredServer? get server => _server;
   String? get apiKey => _apiKey;
   String get statusMessage => _statusMessage;
+  String? get broadcastBaseUrl => _broadcastBaseUrl;
   List<DiscoveredServer> get discoveredServers => List.unmodifiable(_discoveredServers);
+  bool get isBroadcastMode => _connectionMode == ConnectionMode.broadcast;
   bool get isConnected => _state == AppConnectionState.connected;
 
   // Storage keys
@@ -106,6 +112,7 @@ class ConnectionProvider extends ChangeNotifier {
     _server = server;
     notifyListeners();
 
+    _connectionMode = ConnectionMode.lan;
     final baseUrl = 'http://${server.ip}:${server.port}';
     api.configure(baseUrl: baseUrl, apiKey: _apiKey!);
 
@@ -132,6 +139,50 @@ class ConnectionProvider extends ChangeNotifier {
     _state = AppConnectionState.disconnected;
     _statusMessage = 'Disconnected';
     _server = null;
+    notifyListeners();
+  }
+
+  // ─── Broadcast Connect ───
+  Future<bool> connectBroadcast(String cloudflareUrl, String apiKey) async {
+    // Validate and clean URL
+    String url = cloudflareUrl.trim();
+    if (!url.startsWith('https://')) return false;
+    if (url.endsWith('/')) url = url.substring(0, url.length - 1);
+
+    _connectionMode = ConnectionMode.broadcast;
+    _broadcastBaseUrl = url;
+    _state = AppConnectionState.connecting;
+    _statusMessage = 'Connecting to broadcast server...';
+    _apiKey = apiKey;
+    await _storage.write(key: _keyApiKey, value: apiKey);
+    notifyListeners();
+
+    api.configure(baseUrl: url, apiKey: apiKey);
+
+    final ok = await api.healthCheck();
+    if (ok) {
+      _state = AppConnectionState.connected;
+      _statusMessage = 'Connected via Broadcast';
+      stopDiscovery();
+      notifyListeners();
+      return true;
+    } else {
+      _state = AppConnectionState.disconnected;
+      _statusMessage = 'Broadcast connection failed.';
+      _connectionMode = ConnectionMode.none;
+      _broadcastBaseUrl = null;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // ─── Switch Mode ───
+  void switchMode() {
+    _connectionMode = ConnectionMode.none;
+    _state = AppConnectionState.disconnected;
+    _statusMessage = 'Disconnected';
+    _server = null;
+    _broadcastBaseUrl = null;
     notifyListeners();
   }
 

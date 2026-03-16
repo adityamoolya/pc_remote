@@ -5,7 +5,7 @@ import '../services/connection_provider.dart';
 import 'file_explorer_screen.dart';
 import 'screen_stream_screen.dart';
 import 'settings_screen.dart';
-import 'home_screen.dart';
+import 'connection_mode_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -24,8 +24,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (!conn.isConnected) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const HomeScreen()),
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const ConnectionModeScreen()),
+            (route) => false,
           );
         }
       });
@@ -222,9 +223,19 @@ class _ControlsTabState extends State<_ControlsTab> {
             _actionCard(Icons.power_settings_new_rounded, 'Sleep', () => _doAction('system', 'sleep', 'Sleep')),
             _actionCard(Icons.desktop_windows_rounded, 'Shutdown', () => _doAction('system', 'shutdown', 'Shutdown')),
             _actionCard(Icons.monitor_rounded, 'Stream', () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => ScreenStreamScreen(api: widget.conn.api)),
-              );
+              if (widget.conn.isBroadcastMode) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Screen streaming is not available in broadcast mode.'),
+                    backgroundColor: Color(0xFFF85149),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              } else {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => ScreenStreamScreen(api: widget.conn.api, isBroadcastMode: widget.conn.isBroadcastMode)),
+                );
+              }
             }),
             _actionCard(Icons.table_chart_rounded, 'Task Mgr', () => _doAction('system', 'taskmanager', 'Task Manager')),
           ],

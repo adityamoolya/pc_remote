@@ -37,7 +37,7 @@ def create_app(mdns: bool = False) -> FastAPI:
 
     app.include_router(system.router,  prefix="/system", tags=["system manager"],  dependencies=[Depends(validate_api_key)])
     app.include_router(files.router,   prefix="/files",  tags=["file explorer"],   dependencies=[Depends(validate_api_key)])
-    app.include_router(media.router,   prefix="/media",  tags=["media tools"],     dependencies=[Depends(validate_api_key)])
+    app.include_router(media.router,   prefix="/media",  tags=["media tools"])
 
     if mdns:
         app.include_router(stream.router,  prefix="/stream", tags=["stream"],          dependencies=[Depends(validate_api_key)])
